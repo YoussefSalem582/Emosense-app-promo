@@ -1,5 +1,7 @@
 import type React from "react"
 import type { Metadata } from "next"
+import { Analytics } from "@vercel/analytics/next"
+import { Suspense } from "react"
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -10,7 +12,7 @@ export const metadata: Metadata = {
     shortcut: "/images/app-icon.png",
     apple: "/images/app-icon.png",
   },
-    generator: 'v0.app'
+  generator: "v0.app",
 }
 
 export default function RootLayout({
@@ -20,7 +22,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <Suspense fallback={<div>Loading...</div>}>{children}</Suspense>
+        <Analytics />
+      </body>
     </html>
   )
 }
