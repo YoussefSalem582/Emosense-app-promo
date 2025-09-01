@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server"
 
-// In a real app, you'd use a database. For demo purposes, we'll use a simple in-memory counter
-// that resets when the server restarts. For production, use a database like Supabase, MongoDB, etc.
-let viewCount = 0 // Starting fresh
+// Simple in-memory counter that persists during the session
+// This will reset when the server restarts, but works immediately without setup
+let viewCount = 1 // Start with 1 to show activity
 
 export async function GET() {
   return NextResponse.json({ views: viewCount })
