@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Github, Linkedin, Youtube, ExternalLink } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
+import { ViewCounter } from "@/components/view-counter"
 
 export default function EmoSenseLinks() {
   const links = [
@@ -35,6 +36,8 @@ export default function EmoSenseLinks() {
           />
           <h1 className="text-2xl font-bold text-white">EmoSense App Links</h1>
         </div>
+
+        <ViewCounter />
 
         {links.map((link, index) => (
           <Card key={index} className="bg-gray-900 border-gray-800 hover:bg-gray-800 transition-colors">
