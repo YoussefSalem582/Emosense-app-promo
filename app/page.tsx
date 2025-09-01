@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card"
-import { Github, Linkedin, Youtube, ExternalLink, Presentation } from "lucide-react"
+import { Github, Linkedin, Youtube, ExternalLink, Presentation, FileText } from "lucide-react"
 import Link from "next/link"
 import Image from "next/image"
 import { ViewCounter } from "@/components/view-counter"
@@ -25,6 +25,11 @@ export default function EmoSenseLinks() {
       title: "App Presentation",
       url: "https://www.canva.com/design/DAGsVBL0Yfk/VGF3COosMMTMp2bvVoOXRQ/edit?utm_content=DAGsVBL0Yfk&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton",
       icon: Presentation,
+    },
+    {
+      title: "App Document PDF",
+      url: "https://drive.google.com/file/d/1B8BjPMIPI_epCI8DFtV2VPH1wwiw05HG/view?usp=sharing",
+      icon: FileText,
     },
   ]
 
