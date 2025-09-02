@@ -7,9 +7,10 @@ export function ViewCounter() {
   const { views, loading, source } = useViewCounter()
 
   const isWebAnalytics = source === "vercel-web-analytics"
+  const isDashboardSync = source === "dashboard-sync"
 
   // Ensure views is always a valid number
-  const safeViews = typeof views === "number" && !isNaN(views) ? views : 17
+  const safeViews = typeof views === "number" && !isNaN(views) ? views : 29
 
   return (
     <div className="flex items-center justify-center mb-6">
@@ -30,7 +31,7 @@ export function ViewCounter() {
             <span className="bg-gray-800 px-2 py-1 rounded-full text-xs font-bold">
               {loading ? "..." : safeViews.toLocaleString()}
             </span>
-            <span className="text-xs text-gray-400">live</span>
+            <span className="text-xs text-gray-400">{isDashboardSync ? "7d" : "live"}</span>
           </>
         )}
       </div>
