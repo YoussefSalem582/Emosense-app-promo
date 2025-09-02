@@ -25,13 +25,13 @@ export function useViewCounter() {
 
           if (response.ok) {
             const data = await response.json()
-            console.log("View incremented:", data)
+            console.log("Page View incremented:", data)
 
             // Mark this session as counted
             sessionStorage.setItem(sessionKey, "true")
           }
         } catch (error) {
-          console.error("Failed to increment view:", error)
+          console.error("Failed to increment Page View:", error)
         }
       }
     }
@@ -62,12 +62,12 @@ export function useViewCounter() {
 
         // Log Web Analytics status
         if (data.source === "vercel-web-analytics") {
-          console.log(`✅ Vercel Web Analytics: ${viewCount} views (${data.period})`)
+          console.log(`✅ Vercel Web Analytics: ${viewCount} page views (${data.period})`)
         } else {
-          console.log(`📊 Live Counter: ${viewCount} views (${data.note || "fallback"})`)
+          console.log(`📊 Live Counter: ${viewCount} page views (${data.note || "fallback"})`)
         }
       } catch (error) {
-        console.error("View counter error:", error)
+        console.error("Page View counter error:", error)
         setViews(17)
         setSource("error")
       } finally {
