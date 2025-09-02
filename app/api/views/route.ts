@@ -1,115 +1,101 @@
 import { NextResponse } from "next/server"
 
-// Simple fallback storage that works immediately
-let fallbackViewCount = 1
+// Fallback counter for when Vercel Analytics is not available
+let fallbackViewCount = Number.parseInt(process.env.INITIAL_VIEW_COUNT || "1")
 
-// Try to use Supabase if available, otherwise use fallback
-async function getSupabaseViews() {
+// Try to get Vercel Analytics data directly
+async function getVercelAnalytics() {
   try {
-    const { createClient } = await import("@supabase/supabase-js")
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    const VERCEL_PROJECT_ID = "v0-emo-sense-app-promo"
+    const VERCEL_TEAM_ID = process.env.VERCEL_TEAM_ID
+    const VERCEL_ACCESS_TOKEN = process.env.VERCEL_ACCESS_TOKEN
 
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Supabase credentials not available")
+    if (!VERCEL_ACCESS_TOKEN) {
+      console.log("Vercel access token not available")
+      return null
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Calculate date range (last 30 days)
+    const endDate = new Date()
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - 30)
 
-    const { data, error } = await supabase
-      .from("portfolio_views")
-      .select("view_count")
-      .eq("page_name", "emosense-app")
-      .single()
+    const params = new URLSearchParams({
+      projectId: VERCEL_PROJECT_ID,
+      since: startDate.toISOString(),
+      until: endDate.toISOString(),
+      ...(VERCEL_TEAM_ID && { teamId: VERCEL_TEAM_ID }),
+    })
 
-    if (error) throw error
-    return data?.view_count || 0
+    const response = await fetch(`https://api.vercel.com/v1/analytics/page-views?${params}`, {
+      headers: {
+        Authorization: `Bearer ${VERCEL_ACCESS_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      console.error("Vercel Analytics API error:", response.status, response.statusText)
+      return null
+    }
+
+    const data = await response.json()
+
+    // Sum up all page views
+    const totalViews =
+      data.pageViews?.reduce((total: number, item: any) => {
+        return total + (item.views || 0)
+      }, 0) || 0
+
+    return Math.max(0, totalViews)
   } catch (error) {
-    console.log("Supabase not available, using fallback:", error)
-    return null
-  }
-}
-
-async function incrementSupabaseViews() {
-  try {
-    const { createClient } = await import("@supabase/supabase-js")
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      throw new Error("Supabase credentials not available")
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    // Try to get current count first
-    const { data: currentData } = await supabase
-      .from("portfolio_views")
-      .select("view_count")
-      .eq("page_name", "emosense-app")
-      .single()
-
-    if (currentData) {
-      // Update existing record
-      const newCount = currentData.view_count + 1
-      const { data, error } = await supabase
-        .from("portfolio_views")
-        .update({ view_count: newCount })
-        .eq("page_name", "emosense-app")
-        .select("view_count")
-        .single()
-
-      if (error) throw error
-      return data?.view_count || newCount
-    } else {
-      // Create new record
-      const { data, error } = await supabase
-        .from("portfolio_views")
-        .insert([{ page_name: "emosense-app", view_count: 1 }])
-        .select("view_count")
-        .single()
-
-      if (error) throw error
-      return data?.view_count || 1
-    }
-  } catch (error) {
-    console.log("Supabase increment failed, using fallback:", error)
+    console.error("Analytics fetch error:", error)
     return null
   }
 }
 
 export async function GET() {
   try {
-    // Try Supabase first
-    const supabaseViews = await getSupabaseViews()
-    if (supabaseViews !== null) {
-      return NextResponse.json({ views: supabaseViews, source: "database" })
+    // Try to get Vercel Analytics data
+    const analyticsViews = await getVercelAnalytics()
+
+    if (analyticsViews !== null && analyticsViews > 0) {
+      return NextResponse.json({
+        views: analyticsViews,
+        source: "vercel-analytics",
+        period: "30-days",
+      })
     }
 
     // Fallback to local counter
-    return NextResponse.json({ views: fallbackViewCount, source: "fallback" })
+    return NextResponse.json({
+      views: Math.max(1, fallbackViewCount),
+      source: "fallback",
+    })
   } catch (error) {
-    console.error("GET /api/views error:", error)
-    return NextResponse.json({ views: fallbackViewCount, source: "fallback" })
+    console.error("Views API error:", error)
+    return NextResponse.json({
+      views: 1,
+      source: "error",
+    })
   }
 }
 
 export async function POST() {
   try {
-    // Try Supabase first
-    const supabaseViews = await incrementSupabaseViews()
-    if (supabaseViews !== null) {
-      // Sync fallback with database value
-      fallbackViewCount = supabaseViews
-      return NextResponse.json({ views: supabaseViews, source: "database" })
-    }
+    // For POST requests, we'll increment the fallback counter
+    // The real analytics will be tracked by Vercel automatically
+    fallbackViewCount += 1
 
-    // Fallback to local counter
-    fallbackViewCount += 1
-    return NextResponse.json({ views: fallbackViewCount, source: "fallback" })
+    return NextResponse.json({
+      views: Math.max(1, fallbackViewCount),
+      source: "fallback-incremented",
+    })
   } catch (error) {
-    console.error("POST /api/views error:", error)
-    fallbackViewCount += 1
-    return NextResponse.json({ views: fallbackViewCount, source: "fallback" })
+    console.error("Views POST error:", error)
+    return NextResponse.json({
+      views: 1,
+      source: "error",
+    })
   }
 }

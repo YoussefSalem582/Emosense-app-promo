@@ -3,69 +3,58 @@
 import { useState, useEffect } from "react"
 
 export function useViewCounter() {
-  const [views, setViews] = useState<number>(0)
+  const [views, setViews] = useState<number>(1)
   const [loading, setLoading] = useState(true)
+  const [source, setSource] = useState<string>("loading")
 
   useEffect(() => {
-    const handleViews = async () => {
+    const fetchViews = async () => {
       try {
-        const hasViewedThisSession = sessionStorage.getItem("emosense-session-viewed")
+        const response = await fetch("/api/views", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        })
 
-        if (!hasViewedThisSession) {
-          // New session - increment view count
-          try {
-            const response = await fetch("/api/views", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-            })
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
 
-            if (response.ok) {
-              const data = await response.json()
-              setViews(data.views)
-              console.log(`Views incremented to: ${data.views} (source: ${data.source})`)
+        const contentType = response.headers.get("content-type")
+        if (!contentType || !contentType.includes("application/json")) {
+          throw new Error("Response is not JSON")
+        }
 
-              // Mark this session as counted
-              sessionStorage.setItem("emosense-session-viewed", "true")
-            } else {
-              console.error("POST request failed:", response.status)
-              setViews(1)
-              sessionStorage.setItem("emosense-session-viewed", "true")
-            }
-          } catch (postError) {
-            console.error("POST request error:", postError)
-            setViews(1)
-            sessionStorage.setItem("emosense-session-viewed", "true")
-          }
-        } else {
-          // Existing session - just get current count
-          try {
-            const response = await fetch("/api/views")
+        const data = await response.json()
 
-            if (response.ok) {
-              const data = await response.json()
-              setViews(data.views)
-              console.log(`Current views: ${data.views} (source: ${data.source})`)
-            } else {
-              console.error("GET request failed:", response.status)
-              setViews(1)
-            }
-          } catch (getError) {
-            console.error("GET request error:", getError)
-            setViews(1)
-          }
+        // Ensure we always have a valid number
+        const viewCount = typeof data.views === "number" && !isNaN(data.views) ? data.views : 1
+
+        setViews(Math.max(1, viewCount))
+        setSource(data.source || "unknown")
+
+        console.log(`Views: ${viewCount} (source: ${data.source})`)
+
+        if (data.period) {
+          console.log(`Period: ${data.period}`)
         }
       } catch (error) {
         console.error("View counter error:", error)
         setViews(1)
+        setSource("error")
       } finally {
         setLoading(false)
       }
     }
 
-    handleViews()
+    fetchViews()
+
+    // Refresh analytics data every 5 minutes
+    const interval = setInterval(fetchViews, 5 * 60 * 1000)
+
+    return () => clearInterval(interval)
   }, [])
 
-  return { views, loading }
+  return { views, loading, source }
 }
